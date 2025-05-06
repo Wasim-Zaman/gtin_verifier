@@ -1,24 +1,33 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ExpansionTileCard extends StatelessWidget {
+class ExpansionTileCard extends ConsumerWidget {
   final String title;
   final IconData icon;
-  final Widget content;
+  final Widget Function(bool isLoading, bool hasError, Object? error)
+  contentBuilder;
   final VoidCallback? onExpand;
   final bool initiallyExpanded;
+  final AsyncValue<dynamic>? asyncValue;
 
   const ExpansionTileCard({
     super.key,
     required this.title,
     required this.icon,
-    required this.content,
+    required this.contentBuilder,
     this.onExpand,
     this.initiallyExpanded = false,
+    this.asyncValue,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
+
+    // Determine loading and error state from asyncValue if provided
+    bool isLoading = asyncValue?.isLoading ?? false;
+    bool hasError = asyncValue?.hasError ?? false;
+    Object? error = asyncValue?.error;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
@@ -40,6 +49,23 @@ class ExpansionTileCard extends StatelessWidget {
                 color: colorScheme.onSurface,
               ),
             ),
+            // Show loading indicator in the title
+            if (isLoading) ...[
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: colorScheme.primary,
+                ),
+              ),
+            ],
+            // Show error indicator in the title
+            if (hasError) ...[
+              const SizedBox(width: 8),
+              Icon(Icons.error_outline, color: colorScheme.error, size: 16),
+            ],
           ],
         ),
         initiallyExpanded: initiallyExpanded,
@@ -50,7 +76,7 @@ class ExpansionTileCard extends StatelessWidget {
             onExpand!();
           }
         },
-        children: [content],
+        children: [contentBuilder(isLoading, hasError, error)],
       ),
     );
   }
