@@ -38,6 +38,9 @@ dependencies:
   go_router: ^15.1.1
   flex_color_scheme: ^8.2.0
   gs1_barcode_parser: ^1.1.1
+  http: ^1.4.0
+  shimmer: ^3.0.0
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:
