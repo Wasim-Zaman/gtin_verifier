@@ -6,9 +6,11 @@ import '../../models/allergen.dart';
 import '../../models/product.dart';
 import '../../providers/allergen_providers.dart';
 import '../../providers/ingredient_providers.dart';
+import '../../providers/instruction_providers.dart';
 import '../../providers/retailer_providers.dart';
 import 'expansion_tile_card.dart';
 import 'ingredient_content.dart';
+import 'instruction_content.dart';
 import 'retailer_content.dart';
 
 class ProductInfoTab extends ConsumerWidget {
@@ -24,6 +26,7 @@ class ProductInfoTab extends ConsumerWidget {
     final allergensAsync = ref.watch(allergensProvider(barcode));
     final retailersAsync = ref.watch(retailersProvider(barcode));
     final ingredientsAsync = ref.watch(ingredientsProvider(barcode));
+    final instructionsAsync = ref.watch(instructionsProvider(barcode));
 
     return SingleChildScrollView(
       child: Column(
@@ -153,6 +156,45 @@ class ProductInfoTab extends ConsumerWidget {
 
               final ingredients = ingredientsAsync.value ?? [];
               return IngredientContent(ingredients: ingredients);
+            },
+          ),
+
+          // Instructions
+          ExpansionTileCard(
+            title: 'Instructions',
+            icon: Icons.description_outlined,
+            asyncValue: instructionsAsync,
+            onExpand: () {
+              ref
+                  .read(instructionLoadingStateProvider(barcode).notifier)
+                  .state = true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading instructions: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final instructions = instructionsAsync.value ?? [];
+              return InstructionContent(instructions: instructions);
             },
           ),
 
