@@ -5,15 +5,40 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../models/product.dart';
 import '../../providers/product_providers.dart';
+import '../widgets/certification_tab.dart';
+import '../widgets/product_info_tab.dart';
+import '../widgets/recall_info_tab.dart';
+import '../widgets/sustainability_tab.dart';
 
-class ProductDetailsScreen extends ConsumerWidget {
+class ProductDetailsScreen extends ConsumerStatefulWidget {
   final String barcode;
 
   const ProductDetailsScreen({super.key, required this.barcode});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final productAsync = ref.watch(productProvider(barcode));
+  ConsumerState<ProductDetailsScreen> createState() =>
+      _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final productAsync = ref.watch(productProvider(widget.barcode));
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -34,8 +59,8 @@ class ProductDetailsScreen extends ConsumerWidget {
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              colorScheme.surface.withValues(alpha: 0.9),
+              colorScheme.surfaceContainerHighest.withOpacity(0.3),
+              colorScheme.surface.withOpacity(0.9),
             ],
             stops: const [0.0, 0.7],
           ),
@@ -45,11 +70,139 @@ class ProductDetailsScreen extends ConsumerWidget {
             if (product == null) {
               return _buildEmptyState(context);
             }
-            return _buildProductDetails(context, product);
+            return _buildProductDetailsWithTabs(context, product);
           },
           loading: () => _buildLoadingShimmer(context),
-          error: (error, stackTrace) => _buildErrorState(context, error, ref),
+          error: (error, stackTrace) => _buildErrorState(context, error),
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductDetailsWithTabs(BuildContext context, Products product) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          // Original product details section
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Product Image
+                _buildProductImage(context, product, colorScheme),
+                const SizedBox(height: 24),
+
+                // Product Name
+                Text(
+                  product.productnameenglish ?? 'No Name',
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                if (product.productnamearabic != null &&
+                    product.productnamearabic!.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4.0),
+                    child: Text(
+                      product.productnamearabic!,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 16),
+
+                // Brand & Type
+                _buildBrandTypeChips(context, product, colorScheme),
+                const SizedBox(height: 24),
+
+                // Divider
+                Divider(color: colorScheme.outlineVariant),
+                const SizedBox(height: 16),
+
+                // All Details Card
+                _buildDetailsCard(context, product, colorScheme),
+                const SizedBox(height: 24),
+
+                // Description Card
+                if (product.detailsPage != null ||
+                    (product.detailsPageAr != null &&
+                        product.detailsPageAr!.isNotEmpty))
+                  _buildDescriptionCard(context, product, colorScheme),
+
+                const SizedBox(height: 32),
+              ],
+            ),
+          ),
+
+          // Tabbed section
+          _buildTabsSection(context, product),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabsSection(BuildContext context, Products product) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withOpacity(0.08),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+      ),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
+            child: Text(
+              "Additional Information",
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+          TabBar(
+            controller: _tabController,
+            labelColor: colorScheme.primary,
+            unselectedLabelColor: colorScheme.onSurfaceVariant,
+            indicatorColor: colorScheme.primary,
+            indicatorSize: TabBarIndicatorSize.label,
+            dividerColor: Colors.transparent,
+            tabs: const [
+              Tab(icon: Icon(Icons.info_outline), text: 'Product'),
+              Tab(icon: Icon(Icons.warning_amber_outlined), text: 'Recall'),
+              Tab(icon: Icon(Icons.verified_outlined), text: 'Certification'),
+              Tab(icon: Icon(Icons.eco_outlined), text: 'Sustainability'),
+            ],
+          ),
+          SizedBox(
+            height: 300, // Fixed height for the tab content
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                ProductInfoTab(product: product),
+                RecallInfoTab(barcode: product.barcode ?? ''),
+                CertificationTab(barcode: product.barcode ?? ''),
+                SustainabilityTab(barcode: product.barcode ?? ''),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -113,19 +266,16 @@ class ProductDetailsScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildErrorState(BuildContext context, Object error, WidgetRef ref) {
+  Widget _buildErrorState(BuildContext context, Object error) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Center(
       child: Card(
         elevation: 0,
-        color: colorScheme.errorContainer.withValues(alpha: 0.1),
+        color: colorScheme.errorContainer.withOpacity(0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(
-            color: colorScheme.error.withValues(alpha: 0.2),
-            width: 1,
-          ),
+          side: BorderSide(color: colorScheme.error.withOpacity(0.2), width: 1),
         ),
         child: Padding(
           padding: const EdgeInsets.all(24.0),
@@ -136,7 +286,7 @@ class ProductDetailsScreen extends ConsumerWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: colorScheme.errorContainer.withValues(alpha: 0.5),
+                  color: colorScheme.errorContainer.withOpacity(0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -161,7 +311,7 @@ class ProductDetailsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
               FilledButton(
-                onPressed: () => ref.refresh(productProvider(barcode)),
+                onPressed: () => ref.refresh(productProvider(widget.barcode)),
                 child: const Text('Try Again'),
               ),
             ],
@@ -272,64 +422,6 @@ class ProductDetailsScreen extends ConsumerWidget {
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildProductDetails(BuildContext context, Products product) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Product Image
-          _buildProductImage(context, product, colorScheme),
-          const SizedBox(height: 24),
-
-          // Product Name
-          Text(
-            product.productnameenglish ?? 'No Name',
-            style: theme.textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: colorScheme.onSurface,
-            ),
-          ),
-          if (product.productnamearabic != null &&
-              product.productnamearabic!.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(top: 4.0),
-              child: Text(
-                product.productnamearabic!,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          const SizedBox(height: 16),
-
-          // Brand & Type
-          _buildBrandTypeChips(context, product, colorScheme),
-          const SizedBox(height: 24),
-
-          // Divider
-          Divider(color: colorScheme.outlineVariant),
-          const SizedBox(height: 16),
-
-          // All Details Card
-          _buildDetailsCard(context, product, colorScheme),
-          const SizedBox(height: 24),
-
-          // Description Card
-          if (product.detailsPage != null ||
-              (product.detailsPageAr != null &&
-                  product.detailsPageAr!.isNotEmpty))
-            _buildDescriptionCard(context, product, colorScheme),
-
-          const SizedBox(height: 32),
-        ],
       ),
     );
   }

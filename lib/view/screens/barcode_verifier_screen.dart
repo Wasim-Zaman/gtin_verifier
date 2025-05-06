@@ -21,6 +21,9 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
 
+  // Add last processed barcode to avoid duplicate navigation
+  String? _lastNavigatedGtin;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +59,7 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
     _barcodeController.clear();
     ref.read(barcodeScanProvider.notifier).state = '';
     _barcodeFocusNode.requestFocus();
+    _lastNavigatedGtin = null;
   }
 
   String _getBarcodeTypeText(BarcodeType type) {
@@ -95,28 +99,49 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
     final barcodeResultAsync = ref.watch(barcodeResultProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
+    // Check for valid GTIN and navigate automatically
+    barcodeResultAsync.whenData((result) {
+      if (result.gtin != null &&
+          result.gtin!.isNotEmpty &&
+          result.gtin != _lastNavigatedGtin) {
+        // Store the GTIN we're about to navigate to
+        String gtin = result.gtin!;
+        _lastNavigatedGtin = gtin;
+
+        // Schedule navigation after the build is complete
+        Future.microtask(() {
+          // Clear everything
+          _barcodeController.clear();
+          ref.read(barcodeScanProvider.notifier).state = '';
+
+          // Navigate to product details
+          context.go('/product/$gtin');
+        });
+      }
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('GTIN Verifier'),
         backgroundColor: colorScheme.surfaceContainerHighest,
         elevation: 0,
         scrolledUnderElevation: 3,
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: IconButton(
-              icon: const Icon(Icons.science_outlined),
-              tooltip: 'Test Barcodes',
-              style: IconButton.styleFrom(
-                foregroundColor: colorScheme.primary,
-                backgroundColor: colorScheme.primaryContainer.withValues(
-                  alpha: 0.4,
-                ),
-              ),
-              onPressed: () => context.go('/test'),
-            ),
-          ),
-        ],
+        // actions: [
+        //   Padding(
+        //     padding: const EdgeInsets.only(right: 8.0),
+        //     child: IconButton(
+        //       icon: const Icon(Icons.science_outlined),
+        //       tooltip: 'Test Barcodes',
+        //       style: IconButton.styleFrom(
+        //         foregroundColor: colorScheme.primary,
+        //         backgroundColor: colorScheme.primaryContainer.withValues(
+        //           alpha: 0.4,
+        //         ),
+        //       ),
+        //       onPressed: () => context.go('/test'),
+        //     ),
+        //   ),
+        // ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -254,6 +279,7 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
       child: TextField(
         controller: _barcodeController,
         focusNode: _barcodeFocusNode,
+
         decoration: InputDecoration(
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
