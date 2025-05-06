@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../providers/barcode_providers.dart';
 
@@ -46,26 +47,52 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
 
   void _processBarcode() {
     final barcode = _barcodeController.text.trim();
-    ref.read(barcodeProvider.notifier).processBarcode(barcode);
+    if (barcode.isEmpty) return;
+
+    ref.read(barcodeScanProvider.notifier).state = barcode;
+  }
+
+  void _clearBarcode() {
+    _barcodeController.clear();
+    ref.read(barcodeScanProvider.notifier).state = '';
+    _barcodeFocusNode.requestFocus();
   }
 
   String _getBarcodeTypeText(BarcodeType type) {
     switch (type) {
-      case BarcodeType.barcode1D:
-        return '1D Barcode';
+      case BarcodeType.ean13:
+        return 'EAN-13';
       case BarcodeType.qrCode:
         return 'QR Code';
       case BarcodeType.dataMatrix:
         return 'Data Matrix';
+      case BarcodeType.gs1DigitalLink:
+        return 'GS1 Digital Link';
       case BarcodeType.unknown:
       default:
         return 'Unknown';
     }
   }
 
+  IconData _getBarcodeTypeIcon(BarcodeType type) {
+    switch (type) {
+      case BarcodeType.ean13:
+        return Icons.view_agenda;
+      case BarcodeType.qrCode:
+        return Icons.qr_code;
+      case BarcodeType.dataMatrix:
+        return Icons.grid_4x4;
+      case BarcodeType.gs1DigitalLink:
+        return Icons.link;
+      case BarcodeType.unknown:
+      default:
+        return Icons.help_outline;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final barcodeState = ref.watch(barcodeProvider);
+    final barcodeResultAsync = ref.watch(barcodeResultProvider);
     final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
@@ -73,6 +100,13 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
         title: const Text('GTIN Verifier'),
         backgroundColor: colorScheme.inversePrimary,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.science),
+            tooltip: 'Test Barcodes',
+            onPressed: () => context.go('/test'),
+          ),
+        ],
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -90,10 +124,28 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
               Center(
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.qr_code_scanner,
-                      size: 80,
-                      color: Colors.blue,
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        const Icon(
+                          Icons.qr_code_scanner,
+                          size: 80,
+                          color: Colors.blue,
+                        ),
+                        AnimatedBuilder(
+                          animation: _scanAnimation,
+                          builder: (context, child) {
+                            return Positioned(
+                              top: 10 + 60 * _scanAnimation.value,
+                              child: Container(
+                                height: 2,
+                                width: 60,
+                                color: Colors.red.withOpacity(0.6),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -132,15 +184,12 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
                     prefixIcon: const Icon(Icons.qr_code),
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _barcodeController.clear();
-                        ref.read(barcodeProvider.notifier).clearBarcode();
-                        _barcodeFocusNode.requestFocus();
-                      },
+                      onPressed: _clearBarcode,
                     ),
                   ),
                   onChanged: (value) {
                     if (value.isNotEmpty) {
+                      // Debounce input
                       Future.delayed(const Duration(milliseconds: 500), () {
                         if (_barcodeController.text == value) {
                           _processBarcode();
@@ -152,64 +201,61 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
                 ),
               ),
               const SizedBox(height: 32),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: barcodeResultAsync.when(
+                    data: (result) {
+                      if (result.scannedValue.isEmpty) {
+                        return const Center(
+                          child: Text('Scan a barcode to see results'),
+                        );
+                      }
 
-              if (barcodeState.isProcessing)
-                Center(
-                  child: Column(
-                    children: [
-                      AnimatedBuilder(
-                        animation: _scanAnimation,
-                        builder: (context, child) {
-                          return Transform.translate(
-                            offset: Offset(0, 20 * _scanAnimation.value),
-                            child: const Icon(
-                              Icons.qr_code_scanner,
-                              size: 40,
-                              color: Colors.blue,
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      const Text('Scanning...'),
-                    ],
-                  ),
-                )
-              else if (barcodeState.scannedValue.isNotEmpty) ...[
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        ResultCard(
-                          title: 'Scanned Value:',
-                          value: barcodeState.scannedValue,
-                          icon: Icons.qr_code,
-                        ),
-                        ResultCard(
-                          title: 'Barcode Type:',
-                          value: _getBarcodeTypeText(barcodeState.type),
-                          icon: _getBarcodeTypeIcon(barcodeState.type),
-                        ),
-                        if (barcodeState.gtin != null)
+                      return Column(
+                        children: [
                           ResultCard(
-                            title: 'GTIN:',
-                            value: barcodeState.gtin!,
-                            highlight: true,
-                            icon: Icons.tag,
+                            title: 'Scanned Value:',
+                            value: result.scannedValue,
+                            icon: Icons.qr_code,
                           ),
-                        if (barcodeState.errorMessage != null)
                           ResultCard(
+                            title: 'Barcode Type:',
+                            value: _getBarcodeTypeText(result.type),
+                            icon: _getBarcodeTypeIcon(result.type),
+                          ),
+                          if (result.gtin != null)
+                            ResultCard(
+                              title: 'GTIN:',
+                              value: result.gtin!,
+                              highlight: true,
+                              icon: Icons.tag,
+                            ),
+                          if (result.additionalData != null &&
+                              result.additionalData!.isNotEmpty)
+                            ...result.additionalData!.entries.map(
+                              (entry) => ResultCard(
+                                title: 'AI (${entry.key}):',
+                                value: entry.value.toString(),
+                                icon: Icons.description,
+                              ),
+                            ),
+                        ],
+                      );
+                    },
+                    loading:
+                        () => const Center(child: CircularProgressIndicator()),
+                    error:
+                        (error, stackTrace) => Center(
+                          child: ResultCard(
                             title: 'Error:',
-                            value: barcodeState.errorMessage!,
+                            value: error.toString(),
                             isError: true,
                             icon: Icons.error_outline,
                           ),
-                      ],
-                    ),
+                        ),
                   ),
                 ),
-              ],
-
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
@@ -235,20 +281,6 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
         ),
       ),
     );
-  }
-
-  IconData _getBarcodeTypeIcon(BarcodeType type) {
-    switch (type) {
-      case BarcodeType.barcode1D:
-        return Icons.view_agenda;
-      case BarcodeType.qrCode:
-        return Icons.qr_code;
-      case BarcodeType.dataMatrix:
-        return Icons.grid_4x4;
-      case BarcodeType.unknown:
-      default:
-        return Icons.help_outline;
-    }
   }
 }
 

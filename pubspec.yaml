@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^2.6.1
   go_router: ^15.1.1
+  flex_color_scheme: ^8.2.0
+  gs1_barcode_parser: ^1.1.1
 
 dev_dependencies:
   flutter_test:
