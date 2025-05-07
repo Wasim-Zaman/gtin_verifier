@@ -7,14 +7,22 @@ import '../../models/product.dart';
 import '../../providers/allergen_providers.dart';
 import '../../providers/ingredient_providers.dart';
 import '../../providers/instruction_providers.dart';
+import '../../providers/leaflet_providers.dart';
 import '../../providers/packaging_providers.dart';
+import '../../providers/product_image_providers.dart';
+import '../../providers/product_video_providers.dart';
 import '../../providers/promotion_providers.dart';
+import '../../providers/recipe_providers.dart';
 import '../../providers/retailer_providers.dart';
 import 'expansion_tile_card.dart';
 import 'ingredient_content.dart';
 import 'instruction_content.dart';
+import 'leaflet_content.dart';
 import 'packaging_content.dart';
+import 'product_image_content.dart';
+import 'product_video_content.dart';
 import 'promotion_content.dart';
+import 'recipe_content.dart';
 import 'retailer_content.dart';
 
 class ProductInfoTab extends ConsumerWidget {
@@ -275,6 +283,154 @@ class ProductInfoTab extends ConsumerWidget {
               final promotions =
                   ref.watch(promotionsProvider(barcode)).value ?? [];
               return PromotionContent(promotions: promotions);
+            },
+          ),
+
+          // Recipe Information
+          ExpansionTileCard(
+            title: 'Recipe Information',
+            icon: Icons.restaurant_menu,
+            asyncValue: ref.watch(recipesProvider(barcode)),
+            onExpand: () {
+              ref.read(recipeLoadingStateProvider(barcode).notifier).state =
+                  true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading recipe information: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final recipes = ref.watch(recipesProvider(barcode)).value ?? [];
+              return RecipeContent(recipes: recipes);
+            },
+          ),
+
+          // Electronic Leaflets
+          ExpansionTileCard(
+            title: 'Electronic Leaflets',
+            icon: Icons.picture_as_pdf_outlined,
+            asyncValue: ref.watch(leafletsProvider(barcode)),
+            onExpand: () {
+              ref.read(leafletLoadingStateProvider(barcode).notifier).state =
+                  true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading electronic leaflets: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final leaflets = ref.watch(leafletsProvider(barcode)).value ?? [];
+              return LeafletContent(leaflets: leaflets);
+            },
+          ),
+
+          // Images
+          ExpansionTileCard(
+            title: 'Images',
+            icon: Icons.image_outlined,
+            asyncValue: ref.watch(productImagesProvider(barcode)),
+            onExpand: () {
+              ref
+                  .read(productImageLoadingStateProvider(barcode).notifier)
+                  .state = true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading images: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final images =
+                  ref.watch(productImagesProvider(barcode)).value ?? [];
+              return ProductImageContent(images: images);
+            },
+          ),
+
+          // Videos
+          ExpansionTileCard(
+            title: 'Videos',
+            icon: Icons.videocam_outlined,
+            asyncValue: ref.watch(productVideosProvider(barcode)),
+            onExpand: () {
+              ref
+                  .read(productVideoLoadingStateProvider(barcode).notifier)
+                  .state = true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading videos: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final videos =
+                  ref.watch(productVideosProvider(barcode)).value ?? [];
+              return ProductVideoContent(videos: videos);
             },
           ),
 
