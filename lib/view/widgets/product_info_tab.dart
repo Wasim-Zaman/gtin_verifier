@@ -7,10 +7,14 @@ import '../../models/product.dart';
 import '../../providers/allergen_providers.dart';
 import '../../providers/ingredient_providers.dart';
 import '../../providers/instruction_providers.dart';
+import '../../providers/packaging_providers.dart';
+import '../../providers/promotion_providers.dart';
 import '../../providers/retailer_providers.dart';
 import 'expansion_tile_card.dart';
 import 'ingredient_content.dart';
 import 'instruction_content.dart';
+import 'packaging_content.dart';
+import 'promotion_content.dart';
 import 'retailer_content.dart';
 
 class ProductInfoTab extends ConsumerWidget {
@@ -27,6 +31,7 @@ class ProductInfoTab extends ConsumerWidget {
     final retailersAsync = ref.watch(retailersProvider(barcode));
     final ingredientsAsync = ref.watch(ingredientsProvider(barcode));
     final instructionsAsync = ref.watch(instructionsProvider(barcode));
+    final packagingsAsync = ref.watch(packagingsProvider(barcode));
 
     return SingleChildScrollView(
       child: Column(
@@ -195,6 +200,81 @@ class ProductInfoTab extends ConsumerWidget {
 
               final instructions = instructionsAsync.value ?? [];
               return InstructionContent(instructions: instructions);
+            },
+          ),
+
+          // Packaging Information
+          ExpansionTileCard(
+            title: 'Packaging Information',
+            icon: Icons.inventory_2_outlined,
+            asyncValue: packagingsAsync,
+            onExpand: () {
+              ref.read(packagingLoadingStateProvider(barcode).notifier).state =
+                  true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading packaging information: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              final packagings = packagingsAsync.value ?? [];
+              return PackagingContent(packagings: packagings);
+            },
+          ),
+
+          // Promotion Information
+          ExpansionTileCard(
+            title: 'Promotion Information',
+            icon: Icons.local_offer_outlined,
+            asyncValue: ref.watch(promotionsProvider(barcode)),
+            onExpand: () {
+              ref.read(promotionLoadingStateProvider(barcode).notifier).state =
+                  true;
+            },
+            contentBuilder: (isLoading, hasError, error) {
+              if (isLoading) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: CircularProgressIndicator(),
+                  ),
+                );
+              }
+              if (hasError) {
+                return Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Center(
+                    child: Text(
+                      'Error loading promotion information: ${error?.toString() ?? "Unknown error"}',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                );
+              }
+              final promotions =
+                  ref.watch(promotionsProvider(barcode)).value ?? [];
+              return PromotionContent(promotions: promotions);
             },
           ),
 
