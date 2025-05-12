@@ -5,10 +5,7 @@ import 'package:shimmer/shimmer.dart';
 
 import '../../models/product.dart';
 import '../../providers/product_providers.dart';
-import '../widgets/certification_tab.dart';
-import '../widgets/product_info_tab.dart';
-import '../widgets/recall_info_tab.dart';
-import '../widgets/sustainability_tab.dart';
+import '../widgets/product_additional_info_tab.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final String barcode;
@@ -22,17 +19,17 @@ class ProductDetailsScreen extends ConsumerStatefulWidget {
 
 class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  late TabController _mainTabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _mainTabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _mainTabController.dispose();
     super.dispose();
   }
 
@@ -52,6 +49,20 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
+        bottom: TabBar(
+          controller: _mainTabController,
+          labelColor: colorScheme.primary,
+          unselectedLabelColor: colorScheme.onSurfaceVariant,
+          indicatorColor: colorScheme.primary,
+          indicatorSize: TabBarIndicatorSize.label,
+          tabs: const [
+            Tab(icon: Icon(Icons.info_outline), text: 'Details'),
+            Tab(
+              icon: Icon(Icons.dashboard_customize_outlined),
+              text: 'Additional Info',
+            ),
+          ],
+        ),
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -70,7 +81,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             if (product == null) {
               return _buildEmptyState(context);
             }
-            return _buildProductDetailsWithTabs(context, product);
+            return TabBarView(
+              controller: _mainTabController,
+              children: [
+                _buildProductDetailsMainTab(context, product),
+                ProductAdditionalInfoTab(product: product),
+              ],
+            );
           },
           loading: () => _buildLoadingShimmer(context),
           error: (error, stackTrace) => _buildErrorState(context, error),
@@ -79,23 +96,18 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     );
   }
 
-  Widget _buildProductDetailsWithTabs(BuildContext context, Products product) {
+  Widget _buildProductDetailsMainTab(BuildContext context, Products product) {
     final colorScheme = Theme.of(context).colorScheme;
-
     return SingleChildScrollView(
       child: Column(
         children: [
-          // Original product details section
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Product Image
                 _buildProductImage(context, product, colorScheme),
                 const SizedBox(height: 24),
-
-                // Product Name
                 Text(
                   product.productnameenglish ?? 'No Name',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
@@ -115,90 +127,17 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                     ),
                   ),
                 const SizedBox(height: 16),
-
-                // Brand & Type
                 _buildBrandTypeChips(context, product, colorScheme),
                 const SizedBox(height: 24),
-
-                // Divider
                 Divider(color: colorScheme.outlineVariant),
                 const SizedBox(height: 16),
-
-                // All Details Card
                 _buildDetailsCard(context, product, colorScheme),
                 const SizedBox(height: 24),
-
-                // Description Card
                 if (product.detailsPage != null ||
                     (product.detailsPageAr != null &&
                         product.detailsPageAr!.isNotEmpty))
                   _buildDescriptionCard(context, product, colorScheme),
-
                 const SizedBox(height: 32),
-              ],
-            ),
-          ),
-
-          // Tabbed section
-          _buildTabsSection(context, product),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTabsSection(BuildContext context, Products product) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withOpacity(0.08),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
-          ),
-        ],
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 16.0, bottom: 8.0),
-            child: Text(
-              "Additional Information",
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-          TabBar(
-            controller: _tabController,
-            labelColor: colorScheme.primary,
-            unselectedLabelColor: colorScheme.onSurfaceVariant,
-            indicatorColor: colorScheme.primary,
-            indicatorSize: TabBarIndicatorSize.label,
-            dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(icon: Icon(Icons.info_outline), text: 'Product'),
-              Tab(icon: Icon(Icons.warning_amber_outlined), text: 'Recall'),
-              Tab(icon: Icon(Icons.verified_outlined), text: 'Certification'),
-              Tab(icon: Icon(Icons.eco_outlined), text: 'Sustainability'),
-            ],
-          ),
-          SizedBox(
-            height: 300, // Fixed height for the tab content
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                ProductInfoTab(product: product),
-                RecallInfoTab(barcode: product.barcode ?? ''),
-                CertificationTab(barcode: product.barcode ?? ''),
-                SustainabilityTab(barcode: product.barcode ?? ''),
               ],
             ),
           ),
