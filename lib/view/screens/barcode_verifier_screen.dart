@@ -21,6 +21,10 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
   late AnimationController _scanAnimationController;
   late Animation<double> _scanAnimation;
 
+  // Password dialog controller
+  final TextEditingController _passwordController = TextEditingController();
+  static const String _exitPassword = '1122';
+
   // Add last processed barcode to avoid duplicate navigation
   String? _lastNavigatedGtin;
 
@@ -45,6 +49,7 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
     _barcodeController.dispose();
     _barcodeFocusNode.dispose();
     _scanAnimationController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -60,6 +65,68 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
     ref.read(barcodeScanProvider.notifier).state = '';
     _barcodeFocusNode.requestFocus();
     _lastNavigatedGtin = null;
+  }
+
+  // Show password dialog when back button is pressed
+  Future<bool> _onWillPop() async {
+    _passwordController.clear(); // Clear any previous input
+
+    final bool? result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Enter Password to Exit'),
+          content: TextField(
+            controller: _passwordController,
+            decoration: const InputDecoration(
+              hintText: 'Password',
+              border: OutlineInputBorder(),
+            ),
+            obscureText: true,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            onSubmitted: (_) {
+              if (_passwordController.text == _exitPassword) {
+                Navigator.of(context).pop(true);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Incorrect password'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                Navigator.of(context).pop(false);
+              }
+            },
+          ),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                if (_passwordController.text == _exitPassword) {
+                  Navigator.of(context).pop(true);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Incorrect password'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                  Navigator.of(context).pop(false);
+                }
+              },
+              child: const Text('Exit'),
+            ),
+          ],
+        );
+      },
+    );
+
+    return result ?? false;
   }
 
   String _getBarcodeTypeText(BarcodeType type) {
@@ -120,55 +187,58 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
       }
     });
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('GTIN Verifier'),
-        backgroundColor: colorScheme.surfaceContainerHighest,
-        elevation: 0,
-        scrolledUnderElevation: 3,
-        // actions: [
-        //   Padding(
-        //     padding: const EdgeInsets.only(right: 8.0),
-        //     child: IconButton(
-        //       icon: const Icon(Icons.science_outlined),
-        //       tooltip: 'Test Barcodes',
-        //       style: IconButton.styleFrom(
-        //         foregroundColor: colorScheme.primary,
-        //         backgroundColor: colorScheme.primaryContainer.withValues(
-        //           alpha: 0.4,
-        //         ),
-        //       ),
-        //       onPressed: () => context.go('/test'),
-        //     ),
-        //   ),
-        // ],
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
-              colorScheme.surface.withValues(alpha: 0.9),
-            ],
-            stops: const [0.0, 0.7],
-          ),
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('GTIN Verifier'),
+          backgroundColor: colorScheme.surfaceContainerHighest,
+          elevation: 0,
+          scrolledUnderElevation: 3,
+          // actions: [
+          //   Padding(
+          //     padding: const EdgeInsets.only(right: 8.0),
+          //     child: IconButton(
+          //       icon: const Icon(Icons.science_outlined),
+          //       tooltip: 'Test Barcodes',
+          //       style: IconButton.styleFrom(
+          //         foregroundColor: colorScheme.primary,
+          //         backgroundColor: colorScheme.primaryContainer.withValues(
+          //           alpha: 0.4,
+          //         ),
+          //       ),
+          //       onPressed: () => context.go('/test'),
+          //     ),
+          //   ),
+          // ],
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context),
-                const SizedBox(height: 32),
-                _buildSearchBox(context, colorScheme),
-                const SizedBox(height: 24),
-                Expanded(child: _buildResults(barcodeResultAsync)),
-                const SizedBox(height: 16),
-                _buildScanButton(context, colorScheme),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                colorScheme.surfaceContainerHighest.withOpacity(0.3),
+                colorScheme.surface.withOpacity(0.9),
               ],
+              stops: const [0.0, 0.7],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(context),
+                  const SizedBox(height: 32),
+                  _buildSearchBox(context, colorScheme),
+                  const SizedBox(height: 24),
+                  Expanded(child: _buildResults(barcodeResultAsync)),
+                  const SizedBox(height: 16),
+                  _buildScanButton(context, colorScheme),
+                ],
+              ),
             ),
           ),
         ),
