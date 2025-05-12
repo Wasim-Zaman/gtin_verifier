@@ -133,15 +133,76 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 const SizedBox(height: 16),
                 _buildDetailsCard(context, product, colorScheme),
                 const SizedBox(height: 24),
-                if (product.detailsPage != null ||
-                    (product.detailsPageAr != null &&
-                        product.detailsPageAr!.isNotEmpty))
+                if (product.detailsPage != null &&
+                    product.detailsPage!.isNotEmpty)
                   _buildDescriptionCard(context, product, colorScheme),
+                const SizedBox(height: 32),
+                if (product.gcpGLNID != null ||
+                    (product.toJson().containsKey('companyName') &&
+                        product.toJson()['companyName'] != null))
+                  _buildCompanyInfoCard(context, product, colorScheme),
                 const SizedBox(height: 32),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCompanyInfoCard(
+    BuildContext context,
+    Products product,
+    ColorScheme colorScheme,
+  ) {
+    final companyName =
+        product.toJson().containsKey('companyName')
+            ? product.toJson()['companyName']
+            : 'GTIN Issuer';
+
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.business, color: colorScheme.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Company Information',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildInfoRow(context, 'Company Name:', companyName, colorScheme),
+            const SizedBox(height: 8),
+            _buildInfoRow(
+              context,
+              'GCP/GLN ID:',
+              product.gcpGLNID ?? 'Not available',
+              colorScheme,
+            ),
+            if (product.productUrl != null && product.productUrl!.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: _buildInfoRow(
+                  context,
+                  'Website:',
+                  product.productUrl ?? 'Not available',
+                  colorScheme,
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -271,7 +332,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image placeholder
             Container(
               height: 250,
               width: double.infinity,
@@ -282,7 +342,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
             const SizedBox(height: 24),
 
-            // Title placeholder
             Container(
               height: 32,
               width: double.infinity,
@@ -293,7 +352,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
             const SizedBox(height: 8),
 
-            // Brand placeholder
             Container(
               height: 24,
               width: 200,
@@ -304,7 +362,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
             const SizedBox(height: 16),
 
-            // Chips placeholder
             Row(
               children: [
                 Container(
@@ -328,11 +385,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
             const SizedBox(height: 24),
 
-            // Divider placeholder
             Container(height: 1, width: double.infinity, color: Colors.white),
             const SizedBox(height: 16),
 
-            // Detail rows
             for (int i = 0; i < 8; i++) ...[
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -666,6 +721,40 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
           ),
           const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              value,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context,
+    String label,
+    String value,
+    ColorScheme colorScheme,
+  ) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
