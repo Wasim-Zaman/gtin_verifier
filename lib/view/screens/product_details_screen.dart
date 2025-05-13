@@ -1,6 +1,10 @@
+import 'dart:typed_data';
+
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -730,17 +734,84 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           width: double.infinity,
           child:
               product.frontImage != null && product.frontImage!.isNotEmpty
-                  ? Image.network(
-                    product.frontImage!,
+                  ? CachedNetworkImage(
+                    imageUrl: product.frontImage!,
                     fit: BoxFit.contain,
-                    errorBuilder:
-                        (context, error, stackTrace) =>
-                            _buildImageError(colorScheme),
+                    httpHeaders: {
+                      'Accept':
+                          'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+                      'Accept-Language': 'en-US,en;q=0.9',
+                      'Referer': 'https://gs1.org.sa/',
+                      'User-Agent':
+                          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+                      'sec-ch-ua':
+                          '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+                      'sec-ch-ua-mobile': '?0',
+                      'sec-ch-ua-platform': '"macOS"',
+                    },
+                    placeholder:
+                        (context, url) => _buildImagePlaceholder(colorScheme),
+                    errorWidget:
+                        (context, url, error) =>
+                            _buildImageWithFallback(url, colorScheme),
                   )
                   : _buildImageError(colorScheme),
         ),
       ),
     );
+  }
+
+  Widget _buildImagePlaceholder(ColorScheme colorScheme) {
+    return Container(
+      color: colorScheme.surfaceContainerLowest,
+      child: Center(
+        child: CircularProgressIndicator(color: colorScheme.primary),
+      ),
+    );
+  }
+
+  // Try to load image using http client with custom headers as fallback
+  Widget _buildImageWithFallback(String url, ColorScheme colorScheme) {
+    return FutureBuilder(
+      future: _loadImageWithCustomHeaders(url),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return _buildImagePlaceholder(colorScheme);
+        } else if (snapshot.hasData && snapshot.data != null) {
+          return Image.memory(snapshot.data!, fit: BoxFit.contain);
+        } else {
+          return _buildImageError(colorScheme);
+        }
+      },
+    );
+  }
+
+  Future<Uint8List?> _loadImageWithCustomHeaders(String url) async {
+    try {
+      final response = await http.get(
+        Uri.parse(url),
+        headers: {
+          'Accept':
+              'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+          'Accept-Language': 'en-US,en;q=0.9',
+          'Referer': 'https://gs1.org.sa/',
+          'User-Agent':
+              'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+          'sec-ch-ua':
+              '"Chromium";v="136", "Google Chrome";v="136", "Not.A/Brand";v="99"',
+          'sec-ch-ua-mobile': '?0',
+          'sec-ch-ua-platform': '"macOS"',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        return response.bodyBytes;
+      }
+      return null;
+    } catch (e) {
+      print('Error loading image with custom headers: $e');
+      return null;
+    }
   }
 
   Widget _buildImageError(ColorScheme colorScheme) {
