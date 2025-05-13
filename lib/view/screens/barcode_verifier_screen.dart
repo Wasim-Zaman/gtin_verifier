@@ -182,7 +182,7 @@ class _BarcodeVerifierScreenState extends ConsumerState<BarcodeVerifierScreen>
           ref.read(barcodeScanProvider.notifier).state = '';
 
           // Navigate to product details
-          context.go('/product/$gtin');
+          context.push('/product/$gtin');
         });
       }
     });
