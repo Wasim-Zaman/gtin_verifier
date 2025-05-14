@@ -1,6 +1,5 @@
-import 'dart:typed_data';
-
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -77,8 +76,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
-              colorScheme.surfaceContainerHighest.withOpacity(0.3),
-              colorScheme.surface.withOpacity(0.9),
+              colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              colorScheme.surface.withValues(alpha: 0.9),
             ],
             stops: const [0.0, 0.7],
           ),
@@ -271,7 +270,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Company Information',
+                  product.companyName?.isNotEmpty ?? false
+                      ? product.companyName!
+                      : 'Company Information',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: colorScheme.onSurface,
@@ -343,9 +344,12 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
     return Container(
       padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: Colors.green.withOpacity(0.1),
+        color: Colors.green.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.green.withOpacity(0.3), width: 1),
+        border: Border.all(
+          color: Colors.green.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
@@ -367,9 +371,22 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           const Icon(Icons.check_circle, color: Colors.green, size: 20),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(
-              'This number is registered to $companyName',
-              style: TextStyle(color: colorScheme.onSurface),
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: 'This number is registered to ',
+                    style: TextStyle(color: colorScheme.onSurface),
+                  ),
+                  TextSpan(
+                    text: companyName,
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -569,15 +586,15 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         elevation: 0,
         color:
             isNotFoundError
-                ? colorScheme.surfaceContainerHighest.withOpacity(0.1)
-                : colorScheme.errorContainer.withOpacity(0.1),
+                ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.1)
+                : colorScheme.errorContainer.withValues(alpha: 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
             color:
                 isNotFoundError
                     ? colorScheme.outlineVariant
-                    : colorScheme.error.withOpacity(0.2),
+                    : colorScheme.error.withValues(alpha: 0.2),
             width: 1,
           ),
         ),
@@ -592,8 +609,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 decoration: BoxDecoration(
                   color:
                       isNotFoundError
-                          ? colorScheme.surfaceContainerHighest.withOpacity(0.5)
-                          : colorScheme.errorContainer.withOpacity(0.5),
+                          ? colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.5,
+                          )
+                          : colorScheme.errorContainer.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
@@ -885,7 +904,9 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
       }
       return null;
     } catch (e) {
-      print('Error loading image with custom headers: $e');
+      if (kDebugMode) {
+        print('Error loading image with custom headers: $e');
+      }
       return null;
     }
   }
@@ -912,261 +933,6 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBrandTypeChips(
-    BuildContext context,
-    Products product,
-    ColorScheme colorScheme,
-  ) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: [
-        if (product.brandName != null && product.brandName!.isNotEmpty)
-          Chip(
-            label: Text(product.brandName!),
-            labelStyle: TextStyle(
-              color: colorScheme.onPrimaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
-            backgroundColor: colorScheme.primaryContainer.withValues(
-              alpha: 0.7,
-            ),
-            side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-          ),
-        if (product.productType != null && product.productType!.isNotEmpty)
-          Chip(
-            label: Text(product.productType!),
-            labelStyle: TextStyle(
-              color: colorScheme.onSecondaryContainer,
-              fontWeight: FontWeight.bold,
-            ),
-            backgroundColor: colorScheme.secondaryContainer.withValues(
-              alpha: 0.7,
-            ),
-            side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-          ),
-        if (product.countrySale != null && product.countrySale!.isNotEmpty)
-          Chip(
-            label: Text(product.countrySale!),
-            labelStyle: TextStyle(
-              color: colorScheme.onTertiaryContainer,
-              fontWeight: FontWeight.w500,
-            ),
-            backgroundColor: colorScheme.tertiaryContainer.withValues(
-              alpha: 0.7,
-            ),
-            side: BorderSide.none,
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDetailsCard(
-    BuildContext context,
-    Products product,
-    ColorScheme colorScheme,
-  ) {
-    return Card(
-      elevation: 0,
-      color: colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: colorScheme.primary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  'Product Details',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildDetailRow(
-              context,
-              'Barcode',
-              product.barcode,
-              colorScheme.primary,
-              colorScheme,
-            ),
-            _buildDetailRow(context, 'Size', product.size, null, colorScheme),
-            _buildDetailRow(
-              context,
-              'Packaging',
-              product.packagingType,
-              null,
-              colorScheme,
-            ),
-            _buildDetailRow(
-              context,
-              'Origin',
-              product.origin,
-              null,
-              colorScheme,
-            ),
-            _buildDetailRow(context, 'GPC', product.gpc, null, colorScheme),
-            _buildDetailRow(
-              context,
-              'GPC Code',
-              product.gpcCode,
-              null,
-              colorScheme,
-            ),
-            _buildDetailRow(
-              context,
-              'Country of Sale',
-              product.countrySale,
-              null,
-              colorScheme,
-            ),
-            _buildDetailRow(
-              context,
-              'HS Codes',
-              product.hSCODES,
-              null,
-              colorScheme,
-            ),
-            _buildDetailRow(context, 'Unit', product.unit, null, colorScheme),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDescriptionCard(
-    BuildContext context,
-    Products product,
-    ColorScheme colorScheme,
-  ) {
-    return Card(
-      elevation: 0,
-      color: colorScheme.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: colorScheme.outlineVariant, width: 1),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.description_outlined,
-                  color: colorScheme.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Description',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-            if (product.detailsPage != null &&
-                product.detailsPage!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Text(
-                product.detailsPage!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
-              ),
-            ],
-            if (product.detailsPageAr != null &&
-                product.detailsPageAr!.isNotEmpty) ...[
-              const SizedBox(height: 16),
-              Divider(color: colorScheme.outlineVariant),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Icon(Icons.translate, color: colorScheme.primary, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Description (Arabic)',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                product.detailsPageAr!,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurface),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(
-    BuildContext context,
-    String label,
-    String? value,
-    Color? labelColor,
-    ColorScheme colorScheme,
-  ) {
-    if (value == null || value.isEmpty) return const SizedBox.shrink();
-
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 110,
-            decoration: BoxDecoration(
-              color: (labelColor ?? colorScheme.primary).withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 6),
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: labelColor ?? colorScheme.primary,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colorScheme.onSurface,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
