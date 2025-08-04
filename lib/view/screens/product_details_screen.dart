@@ -10,7 +10,6 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/product.dart';
 import '../../providers/product_providers.dart';
-import '../widgets/product_additional_info_tab.dart';
 
 class ProductDetailsScreen extends ConsumerStatefulWidget {
   final String barcode;
@@ -29,7 +28,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _mainTabController = TabController(length: 3, vsync: this);
+    _mainTabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -63,10 +62,10 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
           tabs: const [
             Tab(icon: Icon(Icons.info_outline), text: 'Product Info'),
             Tab(icon: Icon(Icons.business), text: 'Company Info'),
-            Tab(
-              icon: Icon(Icons.dashboard_customize_outlined),
-              text: 'Additional Info',
-            ),
+            // Tab(
+            //   icon: Icon(Icons.dashboard_customize_outlined),
+            //   text: 'Additional Info',
+            // ),
           ],
         ),
       ),
@@ -87,12 +86,35 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
             if (product == null) {
               return _buildEmptyState(context);
             }
+
+            // If product data is not available but company info exists, show only Company Info tab
+            final hasProductData =
+                product.toJson().containsKey('ProductDataAvailable')
+                    ? product.toJson()['ProductDataAvailable']
+                    : true;
+
+            if (!hasProductData) {
+              // Automatically switch to Company Info tab
+              _mainTabController.animateTo(1);
+
+              return TabBarView(
+                controller: _mainTabController,
+                children: [
+                  _buildEmptyState(context), // Product Info tab is empty
+                  _buildCompanyInfoTab(context, product), // Company Info tab
+                  // ProductAdditionalInfoTab(
+                  //   product: product,
+                  // ), // Additional Info tab
+                ],
+              );
+            }
+
             return TabBarView(
               controller: _mainTabController,
               children: [
                 _buildProductInfoTab(context, product),
                 _buildCompanyInfoTab(context, product),
-                ProductAdditionalInfoTab(product: product),
+                // ProductAdditionalInfoTab(product: product),
               ],
             );
           },
@@ -219,6 +241,8 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
         product.toJson().containsKey('created_at') &&
                 product.toJson()['created_at'] != null
             ? _formatDate(product.toJson()['created_at'])
+            : product.createdAt != null
+            ? _formatDate(product.createdAt!)
             : '';
 
     return SingleChildScrollView(
@@ -284,10 +308,7 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 _buildInfoRow(
                   context: context,
                   label: 'Company Name',
-                  value:
-                      product.toJson().containsKey('companyName')
-                          ? product.toJson()['companyName'] ?? ''
-                          : '',
+                  value: product.companyName ?? '',
                   colorScheme: colorScheme,
                 ),
                 _buildWebsiteRow(
@@ -299,13 +320,13 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 _buildInfoRow(
                   context: context,
                   label: 'Licence Key',
-                  value: product.gcpGLNID ?? product.memberID ?? '',
+                  value: product.licenceKey ?? product.memberID ?? '',
                   colorScheme: colorScheme,
                 ),
                 _buildInfoRow(
                   context: context,
                   label: 'Licence Type',
-                  value: product.gcpType ?? '',
+                  value: product.licenceType ?? product.gcpType ?? '',
                   colorScheme: colorScheme,
                 ),
                 _buildInfoRow(
@@ -317,15 +338,29 @@ class _ProductDetailsScreenState extends ConsumerState<ProductDetailsScreen>
                 _buildInfoRow(
                   context: context,
                   label: 'Licensing GS1 Member Organisation',
-                  value: 'GS1 SAUDI ARABIA',
+                  value: product.moName ?? 'GS1 SAUDI ARABIA',
                   colorScheme: colorScheme,
                 ),
+                if (product.formattedAddress != null &&
+                    product.formattedAddress!.isNotEmpty)
+                  _buildInfoRow(
+                    context: context,
+                    label: 'Address',
+                    value: product.formattedAddress!,
+                    colorScheme: colorScheme,
+                  ),
                 _buildInfoRow(
                   context: context,
                   label: 'Date of Registration',
                   value: dateStr,
                   colorScheme: colorScheme,
                 ),
+                // _buildInfoRow(
+                //   context: context,
+                //   label: 'GCP Expiry',
+                //   value: product.expiry ?? '',
+                //   colorScheme: colorScheme,
+                // ),
               ],
             ),
           ),

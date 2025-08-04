@@ -23,6 +23,12 @@ class ProductResponse {
         currentPage = 1;
         pageSize = 1;
         totalProducts = 1;
+      } else if (json.containsKey('companyInfo')) {
+        // Handle company info when ProductDataAvailable is false
+        products = <Products>[Products.fromCompanyInfo(json['companyInfo'])];
+        currentPage = 1;
+        pageSize = 1;
+        totalProducts = 1;
       } else {
         products = [];
         currentPage = 0;
@@ -290,6 +296,23 @@ class Products {
       gpcType = json['gpc_type'];
       productType = json['product_type'];
     }
+  }
+
+  // New constructor for creating from companyInfo
+  Products.fromCompanyInfo(Map<String, dynamic> json) {
+    companyName = json['companyName'];
+    licenceKey = json['licenceKey'];
+    gcpType =
+        json['licenceType']; // Map licenceType to gcpType for UI consistency
+    memberID =
+        json['licenceKey']; // Map licenceKey to memberID for UI consistency
+    productUrl = json['contactWebsite'];
+    formattedAddress = json['formattedAddress'];
+    moName = json['licensingMOName'];
+    gcpGLNID = json['licensingMOGLN'];
+    barcode = json['gtin'];
+    createdAt = json['dateCreated'];
+    updatedAt = json['dateUpdated'];
   }
 
   Map<String, dynamic> toJson() {
